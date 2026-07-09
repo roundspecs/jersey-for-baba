@@ -57,6 +57,16 @@ export default function JerseyForm({
     }
   };
 
+  const isArgentina = selectedTeam.id === "argentina";
+  const focusBorderClass = isArgentina 
+    ? "focus:border-sky-400 focus:ring-sky-400/20" 
+    : "focus:border-emerald-500 focus:ring-emerald-500/20";
+  const focusBorderColor = isArgentina ? "focus:border-sky-400" : "focus:border-emerald-500";
+  const activeIconColor = isArgentina ? "text-sky-400" : "text-emerald-400";
+  const toggleBackground = isArgentina
+    ? "bg-sky-400 text-slate-950 font-extrabold shadow-lg shadow-sky-400/20"
+    : "bg-emerald-500 text-slate-950 font-extrabold shadow-lg shadow-emerald-500/20";
+
   return (
     <div className="w-full bg-slate-900/50 backdrop-blur-xl p-6 md:p-8 rounded-3xl border border-slate-800 flex flex-col gap-6 shadow-xl">
 
@@ -77,13 +87,21 @@ export default function JerseyForm({
                 onClick={() => onTeamChange(team)}
                 className={`relative flex flex-col items-center justify-center p-5 rounded-2xl border bg-slate-950/40 hover:bg-slate-950/70 active:scale-[0.98] transition-all text-center focus:outline-none ${
                   isSelected
-                    ? "border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.15)] bg-slate-950/90"
+                    ? ""
                     : "border-slate-800/80 hover:border-slate-700 text-slate-400 hover:text-white"
                 }`}
+                style={isSelected ? {
+                  borderColor: team.id === "argentina" ? "#38bdf8" : "#10b981",
+                  boxShadow: team.id === "argentina" ? "0 0 20px rgba(56, 189, 248, 0.2)" : "0 0 20px rgba(16, 185, 129, 0.2)",
+                  backgroundColor: "rgba(2, 6, 23, 0.9)"
+                } : {}}
               >
                 {/* Active Indicator Checkmark */}
                 {isSelected && (
-                  <div className="absolute top-2.5 right-2.5 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center text-slate-950">
+                  <div 
+                    className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full flex items-center justify-center text-slate-950"
+                    style={{ backgroundColor: team.id === "argentina" ? "#38bdf8" : "#10b981" }}
+                  >
                     <Check className="w-3.5 h-3.5 stroke-[3]" />
                   </div>
                 )}
@@ -133,8 +151,8 @@ export default function JerseyForm({
             onClick={() => onKitTypeChange("home")}
             className={`py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-300 ${
               kitType === "home"
-                ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-md font-extrabold"
-                : "text-slate-450 hover:text-white"
+                ? toggleBackground
+                : "text-slate-400 hover:text-white"
             }`}
           >
             Home
@@ -144,8 +162,8 @@ export default function JerseyForm({
             onClick={() => onKitTypeChange("away")}
             className={`py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-300 ${
               kitType === "away"
-                ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-md font-extrabold"
-                : "text-slate-450 hover:text-white"
+                ? toggleBackground
+                : "text-slate-400 hover:text-white"
             }`}
           >
             Away
@@ -169,9 +187,9 @@ export default function JerseyForm({
             value={name}
             onChange={handleNameInputChange}
             placeholder="e.g. BABA"
-            className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl px-4 py-3.5 pl-11 text-sm font-semibold tracking-wide placeholder-slate-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 transition-all uppercase"
+            className={`w-full bg-slate-950 border border-slate-800 text-white rounded-xl px-4 py-3.5 pl-11 text-sm font-semibold tracking-wide placeholder-slate-600 focus:outline-none focus:ring-1 transition-all uppercase ${focusBorderColor} ${focusBorderClass}`}
           />
-          <User className="w-4 h-4 text-slate-600 absolute left-4 top-1/2 -translate-y-1/2" />
+          <User className={`w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${activeIconColor}`} />
         </div>
       </div>
 
@@ -190,9 +208,9 @@ export default function JerseyForm({
               value={number}
               onChange={handleNumberInputChange}
               placeholder="10"
-              className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl px-4 py-3.5 pl-11 text-sm font-bold tracking-wide placeholder-slate-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 transition-all"
+              className={`w-full bg-slate-950 border border-slate-800 text-white rounded-xl px-4 py-3.5 pl-11 text-sm font-bold tracking-wide placeholder-slate-600 focus:outline-none focus:ring-1 transition-all ${focusBorderColor} ${focusBorderClass}`}
             />
-            <Hash className="w-4 h-4 text-slate-600 absolute left-4 top-1/2 -translate-y-1/2" />
+            <Hash className={`w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${activeIconColor}`} />
           </div>
           
           {/* Quick Increment buttons */}

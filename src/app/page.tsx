@@ -12,8 +12,21 @@ export default function Home() {
   const [name, setName] = useState("BABA");
   const [number, setNumber] = useState("10");
 
+  const isArgentina = selectedTeam.id === "argentina";
+  const blobColor1 = isArgentina ? "rgba(116, 172, 223, 0.12)" : "rgba(255, 220, 2, 0.12)";
+  const blobColor2 = isArgentina ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 155, 58, 0.12)";
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans relative overflow-hidden">
+      {/* Dynamic Background Glow Blobs */}
+      <div 
+        className="absolute top-[10%] left-[5%] w-[400px] h-[400px] rounded-full blur-[140px] pointer-events-none -z-10 transition-all duration-700" 
+        style={{ backgroundColor: blobColor1 }}
+      />
+      <div 
+        className="absolute bottom-[10%] right-[5%] w-[500px] h-[500px] rounded-full blur-[160px] pointer-events-none -z-10 transition-all duration-700" 
+        style={{ backgroundColor: blobColor2 }}
+      />
 
       {/* Header */}
       <header className="border-b border-slate-900 bg-slate-950/80 backdrop-blur-md sticky top-0 z-30 px-6 py-3">
