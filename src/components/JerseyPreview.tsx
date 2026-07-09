@@ -3,6 +3,7 @@
 import { useRef, useState, useEffect } from "react";
 import { TeamConfig } from "@/lib/teams";
 import { Download, RefreshCw, Check } from "lucide-react";
+import html2canvas from "html2canvas";
 
 interface JerseyPreviewProps {
   team: TeamConfig;
@@ -16,26 +17,33 @@ export default function JerseyPreview({ team, kitType, name, number }: JerseyPre
   const [isExporting, setIsExporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
   const [base64Image, setBase64Image] = useState<string>("");
-  const [base64Font, setBase64Font] = useState<string>("");
+  const [base64Fonts, setBase64Fonts] = useState<{
+    argentina?: string;
+    bebasNeue?: string;
+    teko?: string;
+  }>({});
 
   useEffect(() => {
-    fetch("/jerseys/argentina-font.ttf")
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch font");
-        return res.blob();
-      })
-      .then((blob) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const result = reader.result as string;
-          const base64 = result.split(",")[1];
-          setBase64Font(base64);
-        };
-        reader.readAsDataURL(blob);
-      })
-      .catch((err) => {
-        console.error("Error loading argentina-font.ttf", err);
-      });
+    const loadFont = (name: "argentina" | "bebasNeue" | "teko", url: string) => {
+      fetch(url)
+        .then((res) => {
+          if (!res.ok) throw new Error(`Failed to load ${name}`);
+          return res.blob();
+        })
+        .then((blob) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const result = reader.result as string;
+            setBase64Fonts((prev) => ({ ...prev, [name]: result }));
+          };
+          reader.readAsDataURL(blob);
+        })
+        .catch((err) => console.error(`Error loading font ${name}:`, err));
+    };
+
+    loadFont("argentina", "/jerseys/argentina-font.ttf");
+    loadFont("bebasNeue", "/jerseys/bebas-neue.ttf");
+    loadFont("teko", "/jerseys/teko.ttf");
   }, []);
 
   const kit = kitType === "home" ? team.home : team.away;
@@ -109,37 +117,124 @@ export default function JerseyPreview({ team, kitType, name, number }: JerseyPre
   }, [team.id, kitType]);
 
   const handleDownload = async () => {
-    if (!svgRef.current) return;
     setIsExporting(true);
 
     try {
-      const svgElement = svgRef.current;
-      const svgString = new XMLSerializer().serializeToString(svgElement);
       const canvas = document.createElement("canvas");
       canvas.width = 1200;
       canvas.height = 1200;
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("Could not get canvas context");
 
+      // 1. Draw beautiful radial background gradient
       const bgGrad = ctx.createRadialGradient(600, 600, 100, 600, 600, 800);
       bgGrad.addColorStop(0, "#1e293b");
       bgGrad.addColorStop(1, "#0f172a");
       ctx.fillStyle = bgGrad;
       ctx.fillRect(0, 0, 1200, 1200);
 
-      const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
-      const url = URL.createObjectURL(svgBlob);
+      // 2. Load and draw the jersey template image
+      const jerseyUrl = `/jerseys/${team.id}-${kitType}.png`;
       const img = new Image();
-      img.src = url;
+      img.crossOrigin = "anonymous";
+      img.src = jerseyUrl;
 
       await new Promise<void>((resolve, reject) => {
         img.onload = () => {
-          ctx.drawImage(img, 100, 100, 1000, 1000);
+          ctx.drawImage(img, 150, 0, 900, 1200); // Scale 600x800 SVG image by 1.5
           resolve();
         };
-        img.onerror = () => reject(new Error("Failed to load SVG"));
+        img.onerror = () => reject(new Error("Failed to load jersey template"));
       });
 
+      // 3. Setup fonts (matching screen styles exactly)
+      const fontName = isArgentina 
+        ? "ArgentinaFont" 
+        : "'Bebas Neue', 'Bebas Neue Local'";
+      
+      const numberFontName = isArgentina 
+        ? "ArgentinaFont" 
+        : "'Bebas Neue', 'Bebas Neue Local'";
+
+      // 4. DRAW PLAYER NAME
+      const scaledNameY = nameYPosition * 1.5;
+      const scaledNameSize = nameFontSize * 1.5;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = `900 ${scaledNameSize}px ${fontName}, sans-serif`;
+
+      // Set letter spacing if supported
+      if ("letterSpacing" in ctx) {
+        (ctx as any).letterSpacing = `${nameLetterSpacing * 1.5}px`;
+      }
+
+      if (nameOutlineWidth > 0) {
+        ctx.strokeStyle = kit.textOutlineColor;
+        ctx.lineWidth = nameOutlineWidth * 1.5;
+        ctx.lineJoin = "round";
+        ctx.strokeText(displayName, 600, scaledNameY);
+      }
+      ctx.fillStyle = kit.textColor;
+      ctx.fillText(displayName, 600, scaledNameY);
+
+      // 5. DRAW SQUAD NUMBER
+      const scaledNumY = numberYTranslation * 1.5;
+      const scaledNumSize = numberFontSize * 1.5;
+      ctx.font = `normal ${scaledNumSize}px ${numberFontName}, sans-serif`;
+      
+      // Helper to render one digit / number string
+      const drawDigit = (char: string, xPos: number) => {
+        // Shadow (drawn first)
+        ctx.save();
+        ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
+        ctx.shadowBlur = 3 * 1.5;
+        ctx.shadowOffsetX = 5;
+        ctx.shadowOffsetY = 5;
+        ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
+        ctx.fillText(char, xPos, scaledNumY);
+        ctx.restore();
+
+        // Outline stroke
+        if (numberOutlineWidth > 0) {
+          ctx.strokeStyle = kit.textOutlineColor;
+          ctx.lineWidth = numberOutlineWidth * 1.5;
+          ctx.lineJoin = "round";
+          ctx.strokeText(char, xPos, scaledNumY);
+        }
+
+        // Inner stroke (if applicable)
+        if (numberInnerStrokeWidth > 0) {
+          ctx.strokeStyle = kit.textColor;
+          ctx.lineWidth = numberInnerStrokeWidth * 1.5;
+          ctx.lineJoin = "round";
+          ctx.strokeText(char, xPos, scaledNumY);
+        }
+
+        // Fill text
+        ctx.fillStyle = kit.textColor;
+        ctx.fillText(char, xPos, scaledNumY);
+      };
+
+      // Set letter spacing for numbers
+      if ("letterSpacing" in ctx) {
+        (ctx as any).letterSpacing = `${numberLetterSpacing * 1.5}px`;
+      }
+
+      if (isArgentina) {
+        // Argentina is drawn as a single text block
+        drawDigit(displayNumber, 600);
+      } else {
+        // Brazil uses split digits for centering
+        if (displayNumber.length === 1) {
+          drawDigit(displayNumber, 600);
+        } else {
+          const scaledOffset = 42 * 1.5; // 63px offset
+          drawDigit(displayNumber[0], 600 - scaledOffset);
+          drawDigit(displayNumber[1], 600 + scaledOffset);
+        }
+      }
+
+      // 6. Trigger download
       const dataUrl = canvas.toDataURL("image/png");
       const downloadLink = document.createElement("a");
       downloadLink.href = dataUrl;
@@ -147,7 +242,7 @@ export default function JerseyPreview({ team, kitType, name, number }: JerseyPre
       document.body.appendChild(downloadLink);
       downloadLink.click();
       document.body.removeChild(downloadLink);
-      URL.revokeObjectURL(url);
+      
       setExportSuccess(true);
       setTimeout(() => setExportSuccess(false), 3000);
     } catch (error) {
@@ -159,15 +254,15 @@ export default function JerseyPreview({ team, kitType, name, number }: JerseyPre
 
   const fontStyle = {
     fontFamily: team.id === "argentina" 
-      ? 'ArgentinaFont, var(--font-teko), sans-serif' 
-      : 'var(--font-bebas-neue), var(--font-antonio), sans-serif',
+      ? 'ArgentinaFont, Teko Local, var(--font-teko), sans-serif' 
+      : 'Bebas Neue Local, var(--font-bebas-neue), var(--font-antonio), sans-serif',
     fontWeight: team.id === "argentina" ? ("900" as const) : ("normal" as const)
   };
 
   const numberFontStyle = {
     fontFamily: team.id === "argentina" 
-      ? 'ArgentinaFont, var(--font-teko), sans-serif' 
-      : 'var(--font-bebas-neue), var(--font-antonio), sans-serif',
+      ? 'ArgentinaFont, Teko Local, var(--font-teko), sans-serif' 
+      : 'Bebas Neue Local, var(--font-bebas-neue), var(--font-antonio), sans-serif',
     fontWeight: "normal" as const
   };
 
@@ -199,16 +294,32 @@ export default function JerseyPreview({ team, kitType, name, number }: JerseyPre
           className="w-full h-full drop-shadow-[0_20px_40px_rgba(0,0,0,0.5)]"
         >
           <defs>
-            {base64Font && (
-              <style dangerouslySetInnerHTML={{ __html: `
+            <style dangerouslySetInnerHTML={{ __html: `
+              ${base64Fonts.argentina ? `
                 @font-face {
                   font-family: 'ArgentinaFont';
-                  src: url(data:font/ttf;charset=utf-8;base64,${base64Font}) format('truetype');
-                  font-weight: normal;
+                  src: url('${base64Fonts.argentina}') format('truetype');
+                  font-weight: 100 900;
                   font-style: normal;
                 }
-              ` }} />
-            )}
+              ` : ''}
+              ${base64Fonts.bebasNeue ? `
+                @font-face {
+                  font-family: 'Bebas Neue Local';
+                  src: url('${base64Fonts.bebasNeue}') format('truetype');
+                  font-weight: 100 900;
+                  font-style: normal;
+                }
+              ` : ''}
+              ${base64Fonts.teko ? `
+                @font-face {
+                  font-family: 'Teko Local';
+                  src: url('${base64Fonts.teko}') format('truetype');
+                  font-weight: 100 900;
+                  font-style: normal;
+                }
+              ` : ''}
+            ` }} />
             <path id="name-arc" d="M 260 270 Q 400 215 540 270" fill="none" />
           </defs>
 
