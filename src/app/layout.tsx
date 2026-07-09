@@ -37,8 +37,21 @@ const bebasNeue = Bebas_Neue({
 });
 
 export const metadata: Metadata = {
-  title: "JerseyForBaba - World Cup 2026 Kit Customizer",
-  description: "Design and export high-resolution custom football jerseys for FIFA World Cup 2026. Built with Next.js, Tailwind CSS, and HTML5 Canvas.",
+  title: "JerseyForBaba — World Cup 2026 Kit Customizer",
+  description: "Design and export custom high-resolution Argentina & Brazil football jerseys for World Cup 2026. Choose your name, number, and fonts!",
+  openGraph: {
+    title: "JerseyForBaba — World Cup 2026 Kit Customizer",
+    description: "Design and export custom high-resolution Argentina & Brazil football jerseys for World Cup 2026. Choose your name, number, and fonts!",
+    url: "https://jersey-for-baba.vercel.app",
+    siteName: "JerseyForBaba",
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "JerseyForBaba — World Cup 2026 Kit Customizer",
+    description: "Design and export custom high-resolution Argentina & Brazil football jerseys for World Cup 2026. Choose your name, number, and fonts!",
+  },
 };
 
 export default function RootLayout({
